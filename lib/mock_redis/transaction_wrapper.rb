@@ -1,5 +1,10 @@
 require 'mock_redis/undef_redis_methods'
 
+begin
+  require 'redis-lock'
+rescue LoadError
+end
+
 class MockRedis
   class TransactionWrapper
     include UndefRedisMethods
@@ -99,5 +104,15 @@ class MockRedis
       end
     end
 
+    if defined?(::Redis::Lock)
+      def lock( key, options = {}, &block )
+        acquire = options.delete(:acquire) || 10
+        Redis::Lock.new(self, key, options).lock(acquire, &block)
+      end
+
+      def unlock(key)
+        Redis::Lock.new(self, key).unlock
+      end
+    end
   end
 end
